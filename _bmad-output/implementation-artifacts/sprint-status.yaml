@@ -68,4 +68,4 @@ development_status:
   5-1-remove-phi-from-application-logs: done
   5-2-unit-and-integration-test-suite: done
   5-3-fix-patient-id-race-condition: done
-  epic-5-retrospective: optional
+  epic-5-retrospective: done
