@@ -8,20 +8,24 @@ import com.ainexus.hpm.patient.dto.response.PatientResponse;
 import com.ainexus.hpm.patient.dto.response.PatientSummaryResponse;
 import com.ainexus.hpm.patient.enums.BloodGroup;
 import com.ainexus.hpm.patient.enums.Gender;
-import com.ainexus.hpm.patient.enums.PatientStatus;
+import com.ainexus.hpm.patient.enums.PatientStatusFilter;
 import com.ainexus.hpm.patient.service.PatientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/patients")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Patient Management", description = "APIs for managing patient records")
 public class PatientController {
 
@@ -46,8 +50,8 @@ public class PatientController {
             @Parameter(description = "Search by patient ID, name, phone, or email")
             @RequestParam(required = false) String search,
 
-            @Parameter(description = "Filter by status: ACTIVE, INACTIVE (omit for ALL)")
-            @RequestParam(required = false) PatientStatus status,
+            @Parameter(description = "Filter by status: ACTIVE, INACTIVE, ALL (omit for default ACTIVE)")
+            @RequestParam(required = false) PatientStatusFilter status,
 
             @Parameter(description = "Filter by gender: MALE, FEMALE, OTHER (omit for ALL)")
             @RequestParam(required = false) Gender gender,
@@ -55,7 +59,11 @@ public class PatientController {
             @Parameter(description = "Filter by blood group")
             @RequestParam(required = false) BloodGroup bloodGroup,
 
+            @Min(value = 0, message = "Page index must not be negative")
             @RequestParam(defaultValue = "0") int page,
+
+            @Min(value = 1, message = "Page size must be at least 1")
+            @Max(value = 100, message = "Page size must not exceed 100")
             @RequestParam(defaultValue = "20") int size) {
 
         PagedResponse<PatientSummaryResponse> result =

@@ -9,6 +9,8 @@ import com.ainexus.hpm.patient.entity.Patient;
 import com.ainexus.hpm.patient.enums.BloodGroup;
 import com.ainexus.hpm.patient.enums.Gender;
 import com.ainexus.hpm.patient.enums.PatientStatus;
+import com.ainexus.hpm.patient.enums.PatientStatusFilter;
+import com.ainexus.hpm.patient.service.PatientIdGenerator;
 import com.ainexus.hpm.patient.exception.PatientNotFoundException;
 import com.ainexus.hpm.patient.exception.PatientStatusConflictException;
 import com.ainexus.hpm.patient.mapper.PatientMapper;
@@ -43,6 +45,9 @@ class PatientServiceImplTest {
     @Mock
     private PatientRepository patientRepository;
 
+    @Mock
+    private PatientIdGenerator patientIdGeneratorService;
+
     // Real mapper instance — Mockito byte-buddy cannot mock/spy classes on Java 25
     private final PatientMapper patientMapper = new PatientMapper();
 
@@ -53,7 +58,7 @@ class PatientServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        patientService = new PatientServiceImpl(patientRepository, patientMapper);
+        patientService = new PatientServiceImpl(patientRepository, patientMapper, patientIdGeneratorService);
 
         samplePatient = Patient.builder()
                 .patientId("P2026001")
@@ -89,7 +94,7 @@ class PatientServiceImplTest {
     @DisplayName("registerPatient: success returns PatientResponse with generated ID")
     void registerPatient_success() {
         given(patientRepository.existsByPhoneNumber(anyString())).willReturn(false);
-        given(patientRepository.findMaxCounterForYear(anyString())).willReturn(Optional.empty());
+        given(patientIdGeneratorService.generatePatientId()).willReturn("P2026001");
         given(patientRepository.save(any())).willReturn(samplePatient);
 
         PatientResponse result = patientService.registerPatient(registrationRequest, "receptionist01");
@@ -104,7 +109,7 @@ class PatientServiceImplTest {
     @DisplayName("registerPatient: sets duplicatePhoneWarning=true when phone already exists")
     void registerPatient_duplicatePhone_setsWarning() {
         given(patientRepository.existsByPhoneNumber(anyString())).willReturn(true);
-        given(patientRepository.findMaxCounterForYear(anyString())).willReturn(Optional.of(1));
+        given(patientIdGeneratorService.generatePatientId()).willReturn("P2026002");
         given(patientRepository.save(any())).willReturn(samplePatient);
 
         PatientResponse result = patientService.registerPatient(registrationRequest, "receptionist01");
@@ -116,7 +121,7 @@ class PatientServiceImplTest {
     @DisplayName("registerPatient: generates first ID of year as P2026001")
     void registerPatient_firstOfYear_generatesP2026001() {
         given(patientRepository.existsByPhoneNumber(anyString())).willReturn(false);
-        given(patientRepository.findMaxCounterForYear(anyString())).willReturn(Optional.empty());
+        given(patientIdGeneratorService.generatePatientId()).willReturn("P2026001");
         given(patientRepository.save(argThat(p -> "P2026001".equals(p.getPatientId()))))
                 .willReturn(samplePatient);
 
@@ -131,7 +136,7 @@ class PatientServiceImplTest {
     @DisplayName("registerPatient: increments counter when previous IDs exist")
     void registerPatient_incrementsCounter() {
         given(patientRepository.existsByPhoneNumber(anyString())).willReturn(false);
-        given(patientRepository.findMaxCounterForYear(anyString())).willReturn(Optional.of(5));
+        given(patientIdGeneratorService.generatePatientId()).willReturn("P2026006");
 
         Patient patientWithId6 = Patient.builder()
                 .patientId("P2026006").firstName("John").lastName("Doe")
@@ -170,7 +175,7 @@ class PatientServiceImplTest {
 
         assertThatThrownBy(() -> patientService.getPatientById("P9999999"))
                 .isInstanceOf(PatientNotFoundException.class)
-                .hasMessageContaining("P9999999");
+                .hasMessage("Patient not found: P9999999");
     }
 
     // ─── searchPatients ─────────────────────────────────────────────────────
@@ -183,7 +188,7 @@ class PatientServiceImplTest {
                 .willReturn(patientPage);
 
         PagedResponse<PatientSummaryResponse> result =
-                patientService.searchPatients(null, PatientStatus.ACTIVE, null, null, 0, 20);
+                patientService.searchPatients(null, PatientStatusFilter.ACTIVE, null, null, 0, 20);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getTotalElements()).isEqualTo(1);
@@ -198,7 +203,7 @@ class PatientServiceImplTest {
                 .willReturn(emptyPage);
 
         PagedResponse<PatientSummaryResponse> result =
-                patientService.searchPatients("nonexistent", null, null, null, 0, 20);
+                patientService.searchPatients("nonexistent", (PatientStatusFilter) null, null, null, 0, 20);
 
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getTotalElements()).isZero();
@@ -220,7 +225,7 @@ class PatientServiceImplTest {
                 .willReturn(allPatients);
 
         PagedResponse<PatientSummaryResponse> result =
-                patientService.searchPatients(null, PatientStatus.ALL, null, null, 0, 20);
+                patientService.searchPatients(null, PatientStatusFilter.ALL, null, null, 0, 20);
 
         assertThat(result.getContent()).hasSize(2);
         assertThat(result.getTotalElements()).isEqualTo(2);
@@ -242,7 +247,7 @@ class PatientServiceImplTest {
                 .willReturn(inactivePage);
 
         PagedResponse<PatientSummaryResponse> result =
-                patientService.searchPatients(null, PatientStatus.INACTIVE, null, null, 0, 20);
+                patientService.searchPatients(null, PatientStatusFilter.INACTIVE, null, null, 0, 20);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).getPatientId()).isEqualTo("P2026002");
@@ -257,7 +262,7 @@ class PatientServiceImplTest {
                 .willReturn(patientPage);
 
         PagedResponse<PatientSummaryResponse> result =
-                patientService.searchPatients("P2026001", PatientStatus.ACTIVE, null, null, 0, 20);
+                patientService.searchPatients("P2026001", PatientStatusFilter.ACTIVE, null, null, 0, 20);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).getPatientId()).isEqualTo("P2026001");
@@ -275,7 +280,7 @@ class PatientServiceImplTest {
                 .willReturn(patientPage);
 
         PagedResponse<PatientSummaryResponse> result =
-                patientService.searchPatients(null, null, null, null, 1, 1);
+                patientService.searchPatients(null, (PatientStatusFilter) null, null, null, 1, 1);
 
         assertThat(result.getPage()).isEqualTo(1);
         assertThat(result.getSize()).isEqualTo(1);

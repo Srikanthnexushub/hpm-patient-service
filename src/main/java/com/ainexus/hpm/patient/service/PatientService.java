@@ -7,7 +7,7 @@ import com.ainexus.hpm.patient.dto.response.PatientResponse;
 import com.ainexus.hpm.patient.dto.response.PatientSummaryResponse;
 import com.ainexus.hpm.patient.enums.BloodGroup;
 import com.ainexus.hpm.patient.enums.Gender;
-import com.ainexus.hpm.patient.enums.PatientStatus;
+import com.ainexus.hpm.patient.enums.PatientStatusFilter;
 
 public interface PatientService {
 
@@ -15,7 +15,7 @@ public interface PatientService {
 
     PagedResponse<PatientSummaryResponse> searchPatients(
             String search,
-            PatientStatus status,
+            PatientStatusFilter status,
             Gender gender,
             BloodGroup bloodGroup,
             int page,

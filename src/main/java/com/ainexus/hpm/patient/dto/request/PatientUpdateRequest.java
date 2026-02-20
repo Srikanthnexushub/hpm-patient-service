@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDate;
 
@@ -15,14 +16,15 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"firstName", "lastName", "phoneNumber", "email", "dateOfBirth"})
 public class PatientUpdateRequest {
 
     @NotBlank(message = "First name is required")
-    @Size(max = 100, message = "First name must not exceed 100 characters")
+    @Size(max = 50, message = "First name must not exceed 50 characters")
     private String firstName;
 
     @NotBlank(message = "Last name is required")
-    @Size(max = 100, message = "Last name must not exceed 100 characters")
+    @Size(max = 50, message = "Last name must not exceed 50 characters")
     private String lastName;
 
     @NotNull(message = "Date of birth is required")

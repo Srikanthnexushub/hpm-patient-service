@@ -56,14 +56,32 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("handleGenericException: returns 500 with generic message")
-    void handleGenericException_returns500() {
-        Exception ex = new RuntimeException("Something broke");
+    @DisplayName("handleGenericException: returns 500 with safe generic message (no internal detail)")
+    void handleGenericException_returns500WithSafeMessage() {
+        Exception ex = new RuntimeException("SQL error: column patients.phone_number contains PHI");
         ResponseEntity<ApiResponse<Void>> response = handler.handleGenericException(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().isSuccess()).isFalse();
-        assertThat(response.getBody().getMessage()).contains("Something broke");
+        // Must NOT echo internal exception message back to the client (PHI/SQL leak prevention)
+        assertThat(response.getBody().getMessage())
+                .isEqualTo("An unexpected error occurred. Please contact support.")
+                .doesNotContain("SQL")
+                .doesNotContain("phone_number")
+                .doesNotContain("PHI");
+    }
+
+    @Test
+    @DisplayName("handleOptimisticLocking: returns 409 with safe retry message")
+    void handleOptimisticLocking_returns409() {
+        org.springframework.dao.OptimisticLockingFailureException ex =
+                new org.springframework.dao.OptimisticLockingFailureException("Row was updated by another transaction");
+        ResponseEntity<ApiResponse<Void>> response = handler.handleOptimisticLocking(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isFalse();
+        assertThat(response.getBody().getMessage()).contains("retry");
     }
 }

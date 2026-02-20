@@ -7,6 +7,7 @@ import com.ainexus.hpm.patient.dto.response.PatientSummaryResponse;
 import com.ainexus.hpm.patient.enums.BloodGroup;
 import com.ainexus.hpm.patient.enums.Gender;
 import com.ainexus.hpm.patient.enums.PatientStatus;
+import com.ainexus.hpm.patient.enums.PatientStatusFilter;
 import com.ainexus.hpm.patient.exception.GlobalExceptionHandler;
 import com.ainexus.hpm.patient.exception.PatientNotFoundException;
 import com.ainexus.hpm.patient.exception.PatientStatusConflictException;
@@ -181,6 +182,8 @@ class PatientControllerTest {
         given(patientService.searchPatients(any(), any(), any(), any(), anyInt(), anyInt()))
                 .willReturn(emptyPage);
 
+
+
         mockMvc.perform(get("/api/v1/patients").param("search", "xyznonexistent"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content").isEmpty())
@@ -210,7 +213,7 @@ class PatientControllerTest {
         mockMvc.perform(get("/api/v1/patients/P9999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("P9999999")));
+                .andExpect(jsonPath("$.message").value("Patient not found: P9999999"));
     }
 
     // ─── PUT /api/v1/patients/{patientId} ────────────────────────────────────
@@ -324,7 +327,7 @@ class PatientControllerTest {
                 .page(0).size(20).totalElements(1).totalPages(1)
                 .first(true).last(true).build();
 
-        given(patientService.searchPatients(any(), eq(PatientStatus.INACTIVE), any(), any(), anyInt(), anyInt()))
+        given(patientService.searchPatients(any(), eq(PatientStatusFilter.INACTIVE), any(), any(), anyInt(), anyInt()))
                 .willReturn(pagedResponse);
 
         mockMvc.perform(get("/api/v1/patients").param("status", "INACTIVE"))
@@ -409,7 +412,7 @@ class PatientControllerTest {
                 .page(0).size(20).totalElements(1).totalPages(1)
                 .first(true).last(true).build();
 
-        given(patientService.searchPatients(eq("john"), eq(PatientStatus.ACTIVE), any(), any(), anyInt(), anyInt()))
+        given(patientService.searchPatients(eq("john"), eq(PatientStatusFilter.ACTIVE), any(), any(), anyInt(), anyInt()))
                 .willReturn(pagedResponse);
 
         mockMvc.perform(get("/api/v1/patients")

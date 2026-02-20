@@ -9,10 +9,12 @@ import com.ainexus.hpm.patient.entity.Patient;
 import com.ainexus.hpm.patient.enums.BloodGroup;
 import com.ainexus.hpm.patient.enums.Gender;
 import com.ainexus.hpm.patient.enums.PatientStatus;
+import com.ainexus.hpm.patient.enums.PatientStatusFilter;
 import com.ainexus.hpm.patient.exception.PatientNotFoundException;
 import com.ainexus.hpm.patient.exception.PatientStatusConflictException;
 import com.ainexus.hpm.patient.mapper.PatientMapper;
 import com.ainexus.hpm.patient.repository.PatientRepository;
+import com.ainexus.hpm.patient.service.PatientIdGenerator;
 import com.ainexus.hpm.patient.service.PatientService;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -26,34 +28,36 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
 public class PatientServiceImpl implements PatientService {
 
     private final PatientRepository patientRepository;
     private final PatientMapper patientMapper;
+    private final PatientIdGenerator patientIdGeneratorService;
 
     @Override
+    @Transactional
     public PatientResponse registerPatient(PatientRegistrationRequest request, String userId) {
         log.info("Registering new patient by userId={}", userId);
 
         // Check for duplicate phone (soft warning) — log patientId only, never the phone number (PHI)
         boolean duplicatePhone = patientRepository.existsByPhoneNumber(request.getPhoneNumber());
 
-        String patientId = generatePatientId();
+        // generatePatientId runs in its own REQUIRES_NEW + SERIALIZABLE transaction
+        // via PatientIdGeneratorService so the isolation is actually enforced by the DB
+        String patientId = patientIdGeneratorService.generatePatientId();
 
         if (duplicatePhone) {
             log.warn("Duplicate phone detected for incoming registration, generatedPatientId={}", patientId);
         }
+
         Patient patient = patientMapper.toEntity(request, patientId, userId);
         Patient saved = patientRepository.save(patient);
-
         log.info("Patient registered successfully with ID: {}", patientId);
 
         PatientResponse response = patientMapper.toResponse(saved);
@@ -67,7 +71,7 @@ public class PatientServiceImpl implements PatientService {
     @Transactional(readOnly = true)
     public PagedResponse<PatientSummaryResponse> searchPatients(
             String search,
-            PatientStatus status,
+            PatientStatusFilter status,
             Gender gender,
             BloodGroup bloodGroup,
             int page,
@@ -101,16 +105,31 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
+    @Transactional
     public PatientResponse updatePatient(String patientId, PatientUpdateRequest request, String userId) {
         log.info("Updating patient: {} by user: {}", patientId, userId);
         Patient patient = findPatientOrThrow(patientId);
         patientMapper.updateEntity(patient, request, userId);
+
+        // Duplicate phone check for update — warn if another patient owns this number
+        boolean duplicatePhone = patientRepository
+                .existsByPhoneNumberAndPatientIdNot(request.getPhoneNumber(), patientId);
+        if (duplicatePhone) {
+            log.warn("Duplicate phone detected during update, patientId={}", patientId);
+        }
+
         Patient saved = patientRepository.save(patient);
         log.info("Patient {} updated successfully", patientId);
-        return patientMapper.toResponse(saved);
+
+        PatientResponse response = patientMapper.toResponse(saved);
+        if (duplicatePhone) {
+            response.setDuplicatePhoneWarning(true);
+        }
+        return response;
     }
 
     @Override
+    @Transactional
     public PatientResponse deactivatePatient(String patientId, String userId) {
         log.info("Deactivating patient: {} by user: {}", patientId, userId);
         Patient patient = findPatientOrThrow(patientId);
@@ -119,15 +138,20 @@ public class PatientServiceImpl implements PatientService {
             throw new PatientStatusConflictException("Patient " + patientId + " is already inactive");
         }
 
+        LocalDateTime now = LocalDateTime.now();
         patient.setStatus(PatientStatus.INACTIVE);
-        patient.setDeactivatedAt(LocalDateTime.now());
+        patient.setDeactivatedAt(now);
         patient.setDeactivatedBy(userId);
+        patient.setUpdatedAt(now);
+        patient.setUpdatedBy(userId);
+
         Patient saved = patientRepository.save(patient);
         log.info("Patient {} deactivated successfully", patientId);
         return patientMapper.toResponse(saved);
     }
 
     @Override
+    @Transactional
     public PatientResponse activatePatient(String patientId, String userId) {
         log.info("Activating patient: {} by user: {}", patientId, userId);
         Patient patient = findPatientOrThrow(patientId);
@@ -136,9 +160,13 @@ public class PatientServiceImpl implements PatientService {
             throw new PatientStatusConflictException("Patient " + patientId + " is already active");
         }
 
+        LocalDateTime now = LocalDateTime.now();
         patient.setStatus(PatientStatus.ACTIVE);
-        patient.setActivatedAt(LocalDateTime.now());
+        patient.setActivatedAt(now);
         patient.setActivatedBy(userId);
+        patient.setUpdatedAt(now);
+        patient.setUpdatedBy(userId);
+
         Patient saved = patientRepository.save(patient);
         log.info("Patient {} activated successfully", patientId);
         return patientMapper.toResponse(saved);
@@ -153,35 +181,19 @@ public class PatientServiceImpl implements PatientService {
                 .orElseThrow(() -> new PatientNotFoundException(patientId));
     }
 
-    /**
-     * Generates a patient ID in format P{year}{3-digit-counter}.
-     * Example: P2026001, P2026002 ...
-     *
-     * Uses DB-level SERIALIZABLE isolation to ensure atomicity across multiple JVM instances.
-     * The enclosing class-level @Transactional (READ_COMMITTED) is overridden here so the
-     * SELECT MAX ... is serialized at the DB level — preventing duplicate IDs under concurrency.
-     */
-    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.SERIALIZABLE)
-    protected String generatePatientId() {
-        String year = String.valueOf(Year.now().getValue());
-        int nextCounter = patientRepository.findMaxCounterForYear(year)
-                .map(max -> max + 1)
-                .orElse(1);
-        return String.format("P%s%03d", year, nextCounter);
-    }
-
     private Specification<Patient> buildSearchSpec(
             String search,
-            PatientStatus status,
+            PatientStatusFilter status,
             Gender gender,
             BloodGroup bloodGroup) {
 
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Status filter (null or ALL = no filter)
-            if (status != null && status != PatientStatus.ALL) {
-                predicates.add(cb.equal(root.get("status"), status));
+            // Status filter — null or ALL means no filter
+            if (status != null && status != PatientStatusFilter.ALL) {
+                PatientStatus entityStatus = PatientStatus.valueOf(status.name());
+                predicates.add(cb.equal(root.get("status"), entityStatus));
             }
 
             // Gender filter (null = ALL)

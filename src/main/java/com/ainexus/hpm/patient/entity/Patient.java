@@ -4,20 +4,23 @@ import com.ainexus.hpm.patient.enums.BloodGroup;
 import com.ainexus.hpm.patient.enums.Gender;
 import com.ainexus.hpm.patient.enums.PatientStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "patients")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"firstName", "lastName", "phoneNumber", "email", "dateOfBirth",
+        "address", "city", "state", "zipCode",
+        "emergencyContactName", "emergencyContactPhone",
+        "knownAllergies", "chronicConditions"})
 public class Patient {
 
     // patient_id is the actual PK in the DB (VARCHAR 12, e.g. P2026001)
@@ -85,7 +88,7 @@ public class Patient {
     @Column(name = "chronic_conditions", columnDefinition = "TEXT")
     private String chronicConditions;
 
-    // Status
+    // Status — only ACTIVE or INACTIVE; PatientStatusFilter carries the ALL sentinel for queries
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 10)
     @Builder.Default
@@ -132,8 +135,23 @@ public class Patient {
         if (bloodGroup == null) bloodGroup = BloodGroup.UNKNOWN;
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+    // @PreUpdate intentionally removed — all write paths (updatePatient, deactivatePatient,
+    // activatePatient) set updatedAt and updatedBy explicitly, ensuring FR14 audit completeness.
+
+    /**
+     * Identity based on the natural/business key patientId only.
+     * Mutable fields (status, updatedAt, etc.) are intentionally excluded
+     * to maintain stable equals/hashCode within a JPA persistence context.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Patient other)) return false;
+        return patientId != null && patientId.equals(other.patientId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(patientId);
     }
 }
