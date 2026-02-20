@@ -10,6 +10,7 @@ import com.ainexus.hpm.patient.enums.BloodGroup;
 import com.ainexus.hpm.patient.enums.Gender;
 import com.ainexus.hpm.patient.enums.PatientStatus;
 import com.ainexus.hpm.patient.exception.PatientNotFoundException;
+import com.ainexus.hpm.patient.exception.PatientStatusConflictException;
 import com.ainexus.hpm.patient.mapper.PatientMapper;
 import com.ainexus.hpm.patient.repository.PatientRepository;
 import com.ainexus.hpm.patient.service.PatientService;
@@ -40,16 +41,16 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public PatientResponse registerPatient(PatientRegistrationRequest request, String userId) {
-        log.info("Registering new patient: {} {} by user: {}",
-                request.getFirstName(), request.getLastName(), userId);
+        log.info("Registering new patient by userId={}", userId);
 
-        // Check for duplicate phone (soft warning)
+        // Check for duplicate phone (soft warning) — log patientId only, never the phone number (PHI)
         boolean duplicatePhone = patientRepository.existsByPhoneNumber(request.getPhoneNumber());
-        if (duplicatePhone) {
-            log.warn("Duplicate phone number detected: {}", request.getPhoneNumber());
-        }
 
         String patientId = generatePatientId();
+
+        if (duplicatePhone) {
+            log.warn("Duplicate phone detected for incoming registration, generatedPatientId={}", patientId);
+        }
         Patient patient = patientMapper.toEntity(request, patientId, userId);
         Patient saved = patientRepository.save(patient);
 
@@ -115,7 +116,7 @@ public class PatientServiceImpl implements PatientService {
         Patient patient = findPatientOrThrow(patientId);
 
         if (patient.getStatus() == PatientStatus.INACTIVE) {
-            throw new IllegalArgumentException("Patient " + patientId + " is already inactive");
+            throw new PatientStatusConflictException("Patient " + patientId + " is already inactive");
         }
 
         patient.setStatus(PatientStatus.INACTIVE);
@@ -132,7 +133,7 @@ public class PatientServiceImpl implements PatientService {
         Patient patient = findPatientOrThrow(patientId);
 
         if (patient.getStatus() == PatientStatus.ACTIVE) {
-            throw new IllegalArgumentException("Patient " + patientId + " is already active");
+            throw new PatientStatusConflictException("Patient " + patientId + " is already active");
         }
 
         patient.setStatus(PatientStatus.ACTIVE);
@@ -155,9 +156,13 @@ public class PatientServiceImpl implements PatientService {
     /**
      * Generates a patient ID in format P{year}{3-digit-counter}.
      * Example: P2026001, P2026002 ...
-     * Queries the DB for the current max counter for this year and increments atomically.
+     *
+     * Uses DB-level SERIALIZABLE isolation to ensure atomicity across multiple JVM instances.
+     * The enclosing class-level @Transactional (READ_COMMITTED) is overridden here so the
+     * SELECT MAX ... is serialized at the DB level — preventing duplicate IDs under concurrency.
      */
-    private synchronized String generatePatientId() {
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.SERIALIZABLE)
+    protected String generatePatientId() {
         String year = String.valueOf(Year.now().getValue());
         int nextCounter = patientRepository.findMaxCounterForYear(year)
                 .map(max -> max + 1)

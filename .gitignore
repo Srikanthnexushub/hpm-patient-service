@@ -16,3 +16,7 @@ logs/
 
 # Spring Boot
 spring-pid
+
+# BMAD output (generated artifacts — not source code)
+# Keep _bmad/ (installation) and _bmad-output/ (planning artifacts) in git
+# so team members have full context
