@@ -54,7 +54,10 @@ public class PatientMapper {
         patient.setEmergencyContactName(request.getEmergencyContactName());
         patient.setEmergencyContactPhone(request.getEmergencyContactPhone());
         patient.setEmergencyContactRelationship(request.getEmergencyContactRelationship());
-        patient.setBloodGroup(request.getBloodGroup());
+        // bloodGroup is NOT NULL in DB — preserve existing value if not supplied in update
+        if (request.getBloodGroup() != null) {
+            patient.setBloodGroup(request.getBloodGroup());
+        }
         patient.setKnownAllergies(request.getKnownAllergies());
         patient.setChronicConditions(request.getChronicConditions());
         patient.setUpdatedAt(LocalDateTime.now());
