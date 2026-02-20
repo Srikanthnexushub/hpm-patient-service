@@ -1,0 +1,18 @@
+# Maven
+target/
+*.class
+
+# Logs
+logs/
+*.log
+
+# Environment — NEVER commit real .env
+.env
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Spring Boot
+spring-pid

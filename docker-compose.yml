@@ -1,0 +1,84 @@
+# ============================================================
+# HPM Patient Service — Local Development Compose
+# Usage:
+#   cp .env.example .env  # fill in values
+#   docker compose up -d
+# ============================================================
+
+name: hpm-patient-local
+
+services:
+
+  # ---- PostgreSQL ----
+  patient-db:
+    image: postgres:15-alpine
+    container_name: hpm-patient-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      # Host port 5435 — avoids conflict with any existing postgres on 5432/5433
+      - "${DB_HOST_PORT:-5435}:5432"
+    volumes:
+      - patient_db_data:/var/lib/postgresql/data
+      - ./scripts/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - hpm-patient-net
+
+  # ---- Patient Service ----
+  patient-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DB_URL: jdbc:postgresql://patient-db:5432/${DB_NAME}
+        DB_USERNAME: ${DB_USERNAME}
+        DB_PASSWORD: ${DB_PASSWORD}
+    container_name: hpm-patient-service
+    restart: unless-stopped
+    environment:
+      APP_NAME: ${APP_NAME:-patient-service}
+      SERVER_PORT: ${SERVER_PORT:-8081}
+      DB_URL: jdbc:postgresql://patient-db:5432/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_POOL_MIN_IDLE: ${DB_POOL_MIN_IDLE:-5}
+      DB_POOL_MAX_SIZE: ${DB_POOL_MAX_SIZE:-20}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
+      LOG_LEVEL_APP: ${LOG_LEVEL_APP:-INFO}
+      ACTUATOR_ENDPOINTS: ${ACTUATOR_ENDPOINTS:-health,info,metrics}
+      ACTUATOR_HEALTH_DETAILS: ${ACTUATOR_HEALTH_DETAILS:-always}
+    ports:
+      - "${SERVICE_HOST_PORT:-8081}:${SERVER_PORT:-8081}"
+    depends_on:
+      patient-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:${SERVER_PORT:-8081}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - hpm-patient-net
+    volumes:
+      - patient_logs:/app/logs
+
+volumes:
+  patient_db_data:
+    driver: local
+  patient_logs:
+    driver: local
+
+networks:
+  hpm-patient-net:
+    driver: bridge
+    name: hpm-patient-network

@@ -1,0 +1,43 @@
+# ============================================================
+# HPM Patient Service — Production Compose Overrides
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ============================================================
+
+name: hpm-patient-prod
+
+services:
+
+  patient-db:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports: !reset []  # Do NOT expose DB port publicly in prod
+
+  patient-service:
+    restart: always
+    deploy:
+      replicas: ${REPLICA_COUNT:-2}
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    environment:
+      SWAGGER_ENABLED: "false"
+      ACTUATOR_HEALTH_DETAILS: "when-authorized"
+      LOG_LEVEL_APP: ${LOG_LEVEL_APP:-WARN}
+      JPA_SHOW_SQL: "false"
