@@ -204,6 +204,87 @@ class PatientServiceImplTest {
         assertThat(result.getTotalElements()).isZero();
     }
 
+    @Test
+    @DisplayName("searchPatients: status=ALL applies no status filter (returns all statuses)")
+    void searchPatients_statusAll_appliesNoStatusFilter() {
+        Patient inactivePatient = Patient.builder()
+                .patientId("P2026002").firstName("Jane").lastName("Smith")
+                .dateOfBirth(LocalDate.of(1995, 5, 20)).gender(Gender.FEMALE)
+                .phoneNumber("555-111-2222").status(PatientStatus.INACTIVE)
+                .bloodGroup(BloodGroup.A_POS).createdAt(LocalDateTime.now())
+                .createdBy("receptionist01").updatedAt(LocalDateTime.now())
+                .updatedBy("receptionist01").version(0).build();
+
+        Page<Patient> allPatients = new PageImpl<>(List.of(samplePatient, inactivePatient));
+        given(patientRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .willReturn(allPatients);
+
+        PagedResponse<PatientSummaryResponse> result =
+                patientService.searchPatients(null, PatientStatus.ALL, null, null, 0, 20);
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("searchPatients: status=INACTIVE filters to inactive patients only")
+    void searchPatients_statusInactive_returnsInactiveOnly() {
+        Patient inactivePatient = Patient.builder()
+                .patientId("P2026002").firstName("Jane").lastName("Smith")
+                .dateOfBirth(LocalDate.of(1995, 5, 20)).gender(Gender.FEMALE)
+                .phoneNumber("555-111-2222").status(PatientStatus.INACTIVE)
+                .bloodGroup(BloodGroup.A_POS).createdAt(LocalDateTime.now())
+                .createdBy("receptionist01").updatedAt(LocalDateTime.now())
+                .updatedBy("receptionist01").version(0).build();
+
+        Page<Patient> inactivePage = new PageImpl<>(List.of(inactivePatient));
+        given(patientRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .willReturn(inactivePage);
+
+        PagedResponse<PatientSummaryResponse> result =
+                patientService.searchPatients(null, PatientStatus.INACTIVE, null, null, 0, 20);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getPatientId()).isEqualTo("P2026002");
+        assertThat(result.getContent().get(0).getStatus()).isEqualTo(PatientStatus.INACTIVE);
+    }
+
+    @Test
+    @DisplayName("searchPatients: search by patientId returns matching patient")
+    void searchPatients_searchByPatientId_returnsMatch() {
+        Page<Patient> patientPage = new PageImpl<>(List.of(samplePatient));
+        given(patientRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .willReturn(patientPage);
+
+        PagedResponse<PatientSummaryResponse> result =
+                patientService.searchPatients("P2026001", PatientStatus.ACTIVE, null, null, 0, 20);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getPatientId()).isEqualTo("P2026001");
+    }
+
+    @Test
+    @DisplayName("searchPatients: pagination metadata is mapped correctly")
+    void searchPatients_paginationMetadata_isMappedCorrectly() {
+        Page<Patient> patientPage = new PageImpl<>(
+                List.of(samplePatient),
+                org.springframework.data.domain.PageRequest.of(1, 1, org.springframework.data.domain.Sort.by("createdAt").descending()),
+                2
+        );
+        given(patientRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .willReturn(patientPage);
+
+        PagedResponse<PatientSummaryResponse> result =
+                patientService.searchPatients(null, null, null, null, 1, 1);
+
+        assertThat(result.getPage()).isEqualTo(1);
+        assertThat(result.getSize()).isEqualTo(1);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getTotalPages()).isEqualTo(2);
+        assertThat(result.isFirst()).isFalse();
+        assertThat(result.isLast()).isTrue();
+    }
+
     // ─── updatePatient ───────────────────────────────────────────────────────
 
     @Test

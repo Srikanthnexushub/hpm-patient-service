@@ -281,6 +281,199 @@ class PatientControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    // ─── GET /api/v1/patients — filter & search variants ─────────────────────
+
+    @Test
+    @DisplayName("GET /patients?status=ALL: 200 returns all patients regardless of status")
+    void listPatients_statusAll_returns200WithAllPatients() throws Exception {
+        PatientSummaryResponse active = PatientSummaryResponse.builder()
+                .patientId("P2026001").firstName("John").lastName("Doe")
+                .age(36).gender(Gender.MALE).phoneNumber("555-867-5309")
+                .status(PatientStatus.ACTIVE).build();
+        PatientSummaryResponse inactive = PatientSummaryResponse.builder()
+                .patientId("P2026002").firstName("Jane").lastName("Smith")
+                .age(30).gender(Gender.FEMALE).phoneNumber("555-111-2222")
+                .status(PatientStatus.INACTIVE).build();
+
+        PagedResponse<PatientSummaryResponse> pagedResponse = PagedResponse.<PatientSummaryResponse>builder()
+                .content(List.of(active, inactive))
+                .page(0).size(20).totalElements(2).totalPages(1)
+                .first(true).last(true).build();
+
+        given(patientService.searchPatients(any(), any(), any(), any(), anyInt(), anyInt()))
+                .willReturn(pagedResponse);
+
+        mockMvc.perform(get("/api/v1/patients").param("status", "ALL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.content[0].status").value("ACTIVE"))
+                .andExpect(jsonPath("$.data.content[1].status").value("INACTIVE"));
+    }
+
+    @Test
+    @DisplayName("GET /patients?status=INACTIVE: 200 returns only inactive patients")
+    void listPatients_statusInactive_returnsOnlyInactive() throws Exception {
+        PatientSummaryResponse inactive = PatientSummaryResponse.builder()
+                .patientId("P2026002").firstName("Jane").lastName("Smith")
+                .age(30).gender(Gender.FEMALE).phoneNumber("555-111-2222")
+                .status(PatientStatus.INACTIVE).build();
+
+        PagedResponse<PatientSummaryResponse> pagedResponse = PagedResponse.<PatientSummaryResponse>builder()
+                .content(List.of(inactive))
+                .page(0).size(20).totalElements(1).totalPages(1)
+                .first(true).last(true).build();
+
+        given(patientService.searchPatients(any(), eq(PatientStatus.INACTIVE), any(), any(), anyInt(), anyInt()))
+                .willReturn(pagedResponse);
+
+        mockMvc.perform(get("/api/v1/patients").param("status", "INACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].status").value("INACTIVE"))
+                .andExpect(jsonPath("$.data.totalElements").value(1));
+    }
+
+    @Test
+    @DisplayName("GET /patients?search=P2026001: 200 returns patient matching by ID")
+    void listPatients_searchByPatientId_returnsMatchingPatient() throws Exception {
+        PatientSummaryResponse summary = PatientSummaryResponse.builder()
+                .patientId("P2026001").firstName("John").lastName("Doe")
+                .age(36).gender(Gender.MALE).phoneNumber("555-867-5309")
+                .status(PatientStatus.ACTIVE).build();
+
+        PagedResponse<PatientSummaryResponse> pagedResponse = PagedResponse.<PatientSummaryResponse>builder()
+                .content(List.of(summary))
+                .page(0).size(20).totalElements(1).totalPages(1)
+                .first(true).last(true).build();
+
+        given(patientService.searchPatients(eq("P2026001"), any(), any(), any(), anyInt(), anyInt()))
+                .willReturn(pagedResponse);
+
+        mockMvc.perform(get("/api/v1/patients").param("search", "P2026001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].patientId").value("P2026001"));
+    }
+
+    @Test
+    @DisplayName("GET /patients?gender=FEMALE: 200 returns only female patients")
+    void listPatients_genderFilter_returnsOnlyMatchingGender() throws Exception {
+        PatientSummaryResponse female = PatientSummaryResponse.builder()
+                .patientId("P2026002").firstName("Jane").lastName("Smith")
+                .age(30).gender(Gender.FEMALE).phoneNumber("555-111-2222")
+                .status(PatientStatus.ACTIVE).build();
+
+        PagedResponse<PatientSummaryResponse> pagedResponse = PagedResponse.<PatientSummaryResponse>builder()
+                .content(List.of(female))
+                .page(0).size(20).totalElements(1).totalPages(1)
+                .first(true).last(true).build();
+
+        given(patientService.searchPatients(any(), any(), eq(Gender.FEMALE), any(), anyInt(), anyInt()))
+                .willReturn(pagedResponse);
+
+        mockMvc.perform(get("/api/v1/patients").param("gender", "FEMALE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].gender").value("FEMALE"));
+    }
+
+    @Test
+    @DisplayName("GET /patients?bloodGroup=A_POS: 200 returns patients with matching blood group")
+    void listPatients_bloodGroupFilter_returnsMatchingBloodGroup() throws Exception {
+        PatientSummaryResponse summary = PatientSummaryResponse.builder()
+                .patientId("P2026001").firstName("John").lastName("Doe")
+                .age(36).gender(Gender.MALE).phoneNumber("555-867-5309")
+                .status(PatientStatus.ACTIVE).build();
+
+        PagedResponse<PatientSummaryResponse> pagedResponse = PagedResponse.<PatientSummaryResponse>builder()
+                .content(List.of(summary))
+                .page(0).size(20).totalElements(1).totalPages(1)
+                .first(true).last(true).build();
+
+        given(patientService.searchPatients(any(), any(), any(), eq(BloodGroup.A_POS), anyInt(), anyInt()))
+                .willReturn(pagedResponse);
+
+        mockMvc.perform(get("/api/v1/patients").param("bloodGroup", "A_POS"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].patientId").value("P2026001"));
+    }
+
+    @Test
+    @DisplayName("GET /patients?search=john&status=ACTIVE: 200 applies combined search and filter")
+    void listPatients_combinedSearchAndFilter_returnsFilteredResults() throws Exception {
+        PatientSummaryResponse summary = PatientSummaryResponse.builder()
+                .patientId("P2026001").firstName("John").lastName("Doe")
+                .age(36).gender(Gender.MALE).phoneNumber("555-867-5309")
+                .status(PatientStatus.ACTIVE).build();
+
+        PagedResponse<PatientSummaryResponse> pagedResponse = PagedResponse.<PatientSummaryResponse>builder()
+                .content(List.of(summary))
+                .page(0).size(20).totalElements(1).totalPages(1)
+                .first(true).last(true).build();
+
+        given(patientService.searchPatients(eq("john"), eq(PatientStatus.ACTIVE), any(), any(), anyInt(), anyInt()))
+                .willReturn(pagedResponse);
+
+        mockMvc.perform(get("/api/v1/patients")
+                        .param("search", "john")
+                        .param("status", "ACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].firstName").value("John"))
+                .andExpect(jsonPath("$.data.content[0].status").value("ACTIVE"));
+    }
+
+    @Test
+    @DisplayName("GET /patients?page=1&size=1: 200 returns correct second page")
+    void listPatients_paginationSecondPage_returnsCorrectPage() throws Exception {
+        PatientSummaryResponse summary = PatientSummaryResponse.builder()
+                .patientId("P2026002").firstName("Jane").lastName("Smith")
+                .age(30).gender(Gender.FEMALE).phoneNumber("555-111-2222")
+                .status(PatientStatus.ACTIVE).build();
+
+        PagedResponse<PatientSummaryResponse> pagedResponse = PagedResponse.<PatientSummaryResponse>builder()
+                .content(List.of(summary))
+                .page(1).size(1).totalElements(2).totalPages(2)
+                .first(false).last(true).build();
+
+        given(patientService.searchPatients(any(), any(), any(), any(), eq(1), eq(1)))
+                .willReturn(pagedResponse);
+
+        mockMvc.perform(get("/api/v1/patients")
+                        .param("page", "1")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(1))
+                .andExpect(jsonPath("$.data.totalPages").value(2))
+                .andExpect(jsonPath("$.data.first").value(false))
+                .andExpect(jsonPath("$.data.last").value(true));
+    }
+
+    @Test
+    @DisplayName("POST /patients: 201 with duplicatePhoneWarning=true when phone already exists")
+    void registerPatient_duplicatePhone_returns201WithWarning() throws Exception {
+        PatientRegistrationRequest request = buildValidRequest();
+        PatientResponse responseWithWarning = PatientResponse.builder()
+                .patientId("P2026002")
+                .firstName("John")
+                .lastName("Doe")
+                .dateOfBirth(java.time.LocalDate.of(1990, 1, 15))
+                .gender(Gender.MALE)
+                .phoneNumber("555-867-5309")
+                .status(PatientStatus.ACTIVE)
+                .duplicatePhoneWarning(true)
+                .build();
+
+        given(patientService.registerPatient(any(), anyString())).willReturn(responseWithWarning);
+
+        mockMvc.perform(post("/api/v1/patients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-User-ID", "receptionist01")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.patientId").value("P2026002"))
+                .andExpect(jsonPath("$.data.duplicatePhoneWarning").value(true));
+    }
+
     // ─── PATCH /api/v1/patients/{patientId}/activate ─────────────────────────
 
     @Test
