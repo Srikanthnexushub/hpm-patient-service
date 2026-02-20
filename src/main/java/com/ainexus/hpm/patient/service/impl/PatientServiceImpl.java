@@ -179,8 +179,8 @@ public class PatientServiceImpl implements PatientService {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Status filter (null = ALL)
-            if (status != null) {
+            // Status filter (null or ALL = no filter)
+            if (status != null && status != PatientStatus.ALL) {
                 predicates.add(cb.equal(root.get("status"), status));
             }
 
