@@ -13,8 +13,10 @@ sections_completed:
   - mockability_testing
   - response_structure
   - configuration_deployment
+  - integration_testing
+  - toolchain_compatibility
 status: 'complete'
-rule_count: 42
+rule_count: 50
 optimized_for_llm: true
 ---
 
@@ -38,7 +40,9 @@ Focuses on unobvious details that agents would otherwise miss. Read this before 
 | Boilerplate | Lombok | 1.18.38 |
 | Build | Maven | 3.x |
 | Test | JUnit 5 + Mockito + Spring MockMvc | Boot-managed |
+| Integration Test | Testcontainers + @DataJpaTest | 1.20.4 (overrides Boot 3.2.3 default) |
 | Runtime (dev/CI) | JDK | **25** (Homebrew) — affects Mockito behaviour |
+| Container Runtime | Docker Desktop | **29.x** — requires API v1.44+; see Toolchain section |
 
 ---
 
@@ -106,6 +110,45 @@ Focuses on unobvious details that agents would otherwise miss. Read this before 
 - `any()` matches null values. `any(SpecificClass.class)` does **not** match null. Use `any()` for nullable request params in stubs.
 - `eq(PatientStatusFilter.ACTIVE)` only matches the non-null enum value. When the endpoint receives no `status` param, the service receives `null` — stub with `any()` for those tests.
 
+### Integration Testing with Testcontainers
+
+- **Unit tests mock the repository — DB constraints are never exercised.** Any NOT NULL, unique, or check constraint scenario requires a real DB. Use Testcontainers for these.
+- **Standard pattern for repository integration tests:**
+  ```java
+  @DataJpaTest
+  @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+  @Testcontainers
+  @TestPropertySource(properties = {"spring.jpa.hibernate.ddl-auto=none", "spring.jpa.open-in-view=false"})
+  class PatientRepositoryIntegrationTest {
+      @Container @ServiceConnection
+      static PostgreSQLContainer<?> postgres =
+          new PostgreSQLContainer<>("postgres:15-alpine").withInitScript("db/init-schema.sql");
+  }
+  ```
+- `ddl-auto=none` — schema comes from `withInitScript()`. Hibernate must not try to create/alter tables.
+- `@ServiceConnection` (Spring Boot 3.1+) auto-wires DataSource from the running container. No manual `@DynamicPropertySource` needed.
+- Init script path `"db/init-schema.sql"` resolves from `src/test/resources/` classpath root.
+- **`@PrePersist` guards (e.g., `if (bloodGroup == null) bloodGroup = BloodGroup.UNKNOWN`) fire before the INSERT.** Tests for null enum fields must verify the guard behavior (default applied), not a DB constraint violation — the null never reaches the DB.
+- For check constraint tests (invalid enum strings), use `entityManager.createNativeQuery()` to bypass JPA enum mapping.
+- Optimistic locking test: detach the entity (`entityManager.detach()`), update the DB version via native query, then call `repository.save(staleEntity)` and `entityManager.flush()` — expect `ObjectOptimisticLockingFailureException`.
+
+### Toolchain Compatibility (verify on project setup — day 0)
+
+- **JDK 25 + Mockito**: byte-buddy cannot mock concrete classes. All components that will be mocked must be extracted to interfaces. Verify at project setup, not mid-sprint.
+- **Docker Desktop 29.x + Testcontainers**: docker-java (shaded inside Testcontainers) defaults to Docker API v1.32; Docker Desktop 29.x requires v1.44+. The standard socket (`/var/run/docker.sock`) and the raw daemon socket both require v1.44.
+  - Surefire workaround (in `pom.xml`):
+    ```xml
+    <environmentVariables>
+        <DOCKER_HOST>unix:///Users/${user.name}/Library/Containers/com.docker.docker/Data/docker.raw.sock</DOCKER_HOST>
+        <TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE>/var/run/docker.sock</TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE>
+    </environmentVariables>
+    <argLine>-Dapi.version=1.44</argLine>
+    ```
+  - `DOCKER_HOST` points to `docker.raw.sock` (bypasses the Docker Desktop API proxy).
+  - `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` stays as `/var/run/docker.sock` — Ryuk must mount this path into its container; the raw socket file cannot be mounted as a directory.
+  - `api.version` (not `DOCKER_API_VERSION`) is the correct shaded docker-java property name. Discovered by decompiling `DefaultDockerClientConfig.class` from the Testcontainers jar.
+  - `testcontainers.version=1.20.4` must be set in `<properties>` to override Spring Boot 3.2.3's managed version (1.19.x).
+
 ### Response & Error Contract
 
 - All endpoints return `ApiResponse<T>` wrapping `{ success, message, data }`.
@@ -142,4 +185,4 @@ Focuses on unobvious details that agents would otherwise miss. Read this before 
 - Keep content lean — remove rules that become obvious over time.
 - Cross-reference `_bmad-output/planning-artifacts/` for full architectural context.
 
-_Last Updated: 2026-02-20_
+_Last Updated: 2026-02-20 (added Testcontainers integration testing + Docker Desktop 29.x toolchain compatibility — retrospective action items T1 + P1)_
