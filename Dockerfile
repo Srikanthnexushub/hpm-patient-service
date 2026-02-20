@@ -7,26 +7,15 @@
 FROM eclipse-temurin:17-jdk-alpine AS builder
 WORKDIR /build
 
-# Copy pom.xml and download dependencies first (layer cache)
-COPY pom.xml .
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn dependency:go-offline -q 2>/dev/null || true
-
-# Install Maven
+# Install Maven (must happen before any mvn command)
 RUN apk add --no-cache maven
 
-# Re-download with maven available
+# Copy pom.xml first and pre-download dependencies (leverages Docker layer cache)
 COPY pom.xml .
 RUN mvn dependency:go-offline -q
 
-# Copy source and build
+# Copy source and package (skip tests — run them in CI separately)
 COPY src ./src
-ARG DB_URL=jdbc:postgresql://placeholder:5432/placeholder
-ARG DB_USERNAME=placeholder
-ARG DB_PASSWORD=placeholder
-ENV DB_URL=${DB_URL}
-ENV DB_USERNAME=${DB_USERNAME}
-ENV DB_PASSWORD=${DB_PASSWORD}
 RUN mvn package -DskipTests -q
 
 # ---- Runtime Stage ----
@@ -36,20 +25,19 @@ LABEL org.opencontainers.image.title="HPM Patient Service"
 LABEL org.opencontainers.image.description="Hospital Management System - Patient Microservice"
 LABEL org.opencontainers.image.vendor="Ai Nexus"
 
-# Security: non-root user
+# Security: run as non-root
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-# Copy jar from build stage
+# Copy the packaged jar from the build stage
 COPY --from=builder /build/target/*.jar app.jar
 
-# Create logs directory
+# Create logs directory with correct ownership
 RUN mkdir -p /app/logs && chown -R appuser:appgroup /app
 
 USER appuser
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD wget -q --spider http://localhost:${SERVER_PORT:-8081}/actuator/health || exit 1
 
