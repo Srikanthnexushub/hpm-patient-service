@@ -27,6 +27,7 @@ import AddLabTestPage from './pages/AddLabTestPage'
 import LabOrdersPage from './pages/LabOrdersPage'
 import CreateLabOrderPage from './pages/CreateLabOrderPage'
 import LabOrderDetailPage from './pages/LabOrderDetailPage'
+import LabTestDetailPage from './pages/LabTestDetailPage'
 import WardsPage from './pages/WardsPage'
 import BedsPage from './pages/BedsPage'
 import AdmissionsPage from './pages/AdmissionsPage'
@@ -69,6 +70,7 @@ function App() {
         {/* Laboratory */}
         <Route path="/lab-tests" element={<LabTestsPage />} />
         <Route path="/lab-tests/new" element={<AddLabTestPage />} />
+        <Route path="/lab-tests/:id" element={<LabTestDetailPage />} />
         <Route path="/lab-orders" element={<LabOrdersPage />} />
         <Route path="/lab-orders/new" element={<CreateLabOrderPage />} />
         <Route path="/lab-orders/:id" element={<LabOrderDetailPage />} />
