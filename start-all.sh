@@ -16,6 +16,7 @@ BILL_JAR="/Users/srikanth/IdeaProjects/HPM_Billing/target/billing-service-1.0.0.
 NOTIF_JAR="/Users/srikanth/IdeaProjects/HPM_Notification/target/notification-service-1.0.0.jar"
 PHARM_JAR="/Users/srikanth/IdeaProjects/HPM_Pharmacy/target/pharmacy-service-1.0.0.jar"
 LAB_JAR="/Users/srikanth/IdeaProjects/HPM_Lab/target/lab-service-1.0.0.jar"
+BED_JAR="/Users/srikanth/IdeaProjects/HPM_Bed/target/bed-service-1.0.0.jar"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 LOG_DIR="/tmp"
 
@@ -27,7 +28,7 @@ error() { echo -e "${RED}[HPM]${NC} $*"; }
 
 # ── Check Docker DBs ────────────────────────────────────────
 info "Checking database containers..."
-for container in hpm-patient-db hpm-appointment-db hpm-emr-db hpm-billing-db hpm-notification-db hpm-pharmacy-db hpm-lab-db; do
+for container in hpm-patient-db hpm-appointment-db hpm-emr-db hpm-billing-db hpm-notification-db hpm-pharmacy-db hpm-lab-db hpm-bed-db; do
   if ! docker ps --filter "name=^${container}$" --filter "status=running" | grep -q "$container"; then
     warn "Container $container is not running. Starting..."
     docker start "$container" || { error "Failed to start $container"; exit 1; }
@@ -132,6 +133,20 @@ else
   wait_for_port localhost 8087 "lab-service"
 fi
 
+# ── Bed Management Service ───────────────────────────────────
+if lsof -i :8088 2>/dev/null | grep -q LISTEN; then
+  warn "Bed service already running on :8088 — skipping."
+else
+  info "Starting Bed Management Service (port 8088)..."
+  java -jar "$BED_JAR" \
+    --spring.datasource.url=jdbc:postgresql://localhost:5442/hpm_bed_db \
+    --spring.datasource.username=hpm_user \
+    --spring.datasource.password=HpmBed2026! \
+    > "$LOG_DIR/bed-service.log" 2>&1 &
+  echo $! > /tmp/hpm-bed.pid
+  wait_for_port localhost 8088 "bed-service"
+fi
+
 # ── Vite Frontend ───────────────────────────────────────────
 if lsof -i :3000 2>/dev/null | grep -q LISTEN; then
   warn "Frontend already running on :3000 — skipping."
@@ -154,6 +169,7 @@ echo -e "  Billing Service  → ${GREEN}http://localhost:8084${NC}"
 echo -e "  Notif Service    → ${GREEN}http://localhost:8085${NC}"
 echo -e "  Pharmacy Service → ${GREEN}http://localhost:8086${NC}"
 echo -e "  Lab Service      → ${GREEN}http://localhost:8087${NC}"
+echo -e "  Bed Service      → ${GREEN}http://localhost:8088${NC}"
 echo -e "  Frontend         → ${GREEN}http://localhost:3000${NC}"
 echo ""
 info "Logs: apt | emr | bill | notif | pharm | lab | vite → /tmp/<name>-service.log"

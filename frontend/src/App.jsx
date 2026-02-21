@@ -27,6 +27,11 @@ import AddLabTestPage from './pages/AddLabTestPage'
 import LabOrdersPage from './pages/LabOrdersPage'
 import CreateLabOrderPage from './pages/CreateLabOrderPage'
 import LabOrderDetailPage from './pages/LabOrderDetailPage'
+import WardsPage from './pages/WardsPage'
+import BedsPage from './pages/BedsPage'
+import AdmissionsPage from './pages/AdmissionsPage'
+import CreateAdmissionPage from './pages/CreateAdmissionPage'
+import AdmissionDetailPage from './pages/AdmissionDetailPage'
 
 function App() {
   return (
@@ -67,6 +72,12 @@ function App() {
         <Route path="/lab-orders" element={<LabOrdersPage />} />
         <Route path="/lab-orders/new" element={<CreateLabOrderPage />} />
         <Route path="/lab-orders/:id" element={<LabOrderDetailPage />} />
+        {/* Bed Management */}
+        <Route path="/wards" element={<WardsPage />} />
+        <Route path="/beds" element={<BedsPage />} />
+        <Route path="/admissions" element={<AdmissionsPage />} />
+        <Route path="/admissions/new" element={<CreateAdmissionPage />} />
+        <Route path="/admissions/:id" element={<AdmissionDetailPage />} />
       </Routes>
     </Layout>
   )

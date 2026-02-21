@@ -46,6 +46,14 @@ const navSections = [
       { to: '/lab-orders', label: 'Lab Orders', icon: '🧪' },
     ],
   },
+  {
+    heading: 'BED MANAGEMENT',
+    items: [
+      { to: '/wards', label: 'Wards', icon: '🏠' },
+      { to: '/beds', label: 'Beds', icon: '🛏️' },
+      { to: '/admissions', label: 'Admissions', icon: '🏥' },
+    ],
+  },
 ]
 
 export default function Layout({ children }) {

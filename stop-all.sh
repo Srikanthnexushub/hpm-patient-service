@@ -24,6 +24,7 @@ stop_pid_file /tmp/hpm-bill.pid  "Billing Service"
 stop_pid_file /tmp/hpm-notif.pid  "Notification Service"
 stop_pid_file /tmp/hpm-pharm.pid  "Pharmacy Service"
 stop_pid_file /tmp/hpm-lab.pid    "Lab Service"
+stop_pid_file /tmp/hpm-bed.pid    "Bed Management Service"
 stop_pid_file /tmp/hpm-vite.pid   "Vite Dev Server"
 
 # Fallback: kill by pattern if pid files are missing
@@ -33,6 +34,7 @@ pkill -f "billing-service.*jar"       2>/dev/null && info "Stopped billing-servi
 pkill -f "notification-service.*jar"  2>/dev/null && info "Stopped notification-service (fallback)"  || true
 pkill -f "pharmacy-service.*jar"      2>/dev/null && info "Stopped pharmacy-service (fallback)"       || true
 pkill -f "lab-service.*jar"           2>/dev/null && info "Stopped lab-service (fallback)"             || true
+pkill -f "bed-service.*jar"           2>/dev/null && info "Stopped bed-service (fallback)"             || true
 pkill -f "vite"                       2>/dev/null && info "Stopped vite (fallback)"                   || true
 
 info "All HPM services stopped."
