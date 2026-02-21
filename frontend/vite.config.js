@@ -10,7 +10,17 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8081',
         changeOrigin: true,
-      }
+      },
+      '/apt-api': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/apt-api/, '/api'),
+      },
+      '/emr-api': {
+        target: 'http://localhost:8083',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/emr-api/, '/api'),
+      },
     }
   }
 })

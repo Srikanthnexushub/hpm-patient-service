@@ -1,8 +1,28 @@
 import { NavLink } from 'react-router-dom'
 
-const navItems = [
-  { to: '/patients', label: 'Patients', icon: '👥' },
-  { to: '/patients/register', label: 'Register Patient', icon: '➕' },
+const navSections = [
+  {
+    heading: 'PATIENTS',
+    items: [
+      { to: '/patients', label: 'Patients', icon: '👥' },
+      { to: '/patients/register', label: 'Register Patient', icon: '➕' },
+    ],
+  },
+  {
+    heading: 'APPOINTMENTS',
+    items: [
+      { to: '/doctors', label: 'Doctors', icon: '👨‍⚕️' },
+      { to: '/appointments', label: 'Appointments', icon: '📅' },
+      { to: '/appointments/book', label: 'Book Appointment', icon: '➕' },
+    ],
+  },
+  {
+    heading: 'MEDICAL RECORDS',
+    items: [
+      { to: '/records', label: 'Medical Records', icon: '📋' },
+      { to: '/records/new', label: 'New Record', icon: '➕' },
+    ],
+  },
 ]
 
 export default function Layout({ children }) {
@@ -15,28 +35,36 @@ export default function Layout({ children }) {
           <span className="text-2xl">🏥</span>
           <div>
             <p className="text-sm font-bold leading-tight">HPM</p>
-            <p className="text-xs text-blue-200 leading-tight">Patient Service</p>
+            <p className="text-xs text-blue-200 leading-tight">Hospital Management</p>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/patients/register' ? false : undefined}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-blue-900 text-white'
-                    : 'text-blue-100 hover:bg-blue-700 hover:text-white'
-                }`
-              }
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </NavLink>
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
+          {navSections.map((section) => (
+            <div key={section.heading} className="mb-4">
+              <p className="px-3 mb-1 text-xs font-semibold text-blue-400 uppercase tracking-wider">
+                {section.heading}
+              </p>
+              <div className="space-y-0.5">
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-blue-900 text-white'
+                          : 'text-blue-100 hover:bg-blue-700 hover:text-white'
+                      }`
+                    }
+                  >
+                    <span>{item.icon}</span>
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 
