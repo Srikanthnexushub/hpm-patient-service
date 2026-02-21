@@ -19,6 +19,7 @@ LAB_JAR="/Users/srikanth/IdeaProjects/HPM_Lab/target/lab-service-1.0.0.jar"
 BED_JAR="/Users/srikanth/IdeaProjects/HPM_Bed/target/bed-service-1.0.0.jar"
 STAFF_JAR="/Users/srikanth/IdeaProjects/HPM_Staff/target/staff-service-1.0.0.jar"
 INV_JAR="/Users/srikanth/IdeaProjects/HPM_Inventory/target/inventory-service-1.0.0.jar"
+BLOOD_JAR="/Users/srikanth/IdeaProjects/HPM_BloodBank/target/bloodbank-service-1.0.0.jar"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 LOG_DIR="/tmp"
 
@@ -30,7 +31,7 @@ error() { echo -e "${RED}[HPM]${NC} $*"; }
 
 # ── Check Docker DBs ────────────────────────────────────────
 info "Checking database containers..."
-for container in hpm-patient-db hpm-appointment-db hpm-emr-db hpm-billing-db hpm-notification-db hpm-pharmacy-db hpm-lab-db hpm-bed-db hpm-staff-db hpm-inventory-db; do
+for container in hpm-patient-db hpm-appointment-db hpm-emr-db hpm-billing-db hpm-notification-db hpm-pharmacy-db hpm-lab-db hpm-bed-db hpm-staff-db hpm-inventory-db hpm-bloodbank-db; do
   if ! docker ps --filter "name=^${container}$" --filter "status=running" | grep -q "$container"; then
     warn "Container $container is not running. Starting..."
     docker start "$container" || { error "Failed to start $container"; exit 1; }
@@ -177,6 +178,20 @@ else
   wait_for_port localhost 8090 "inventory-service"
 fi
 
+# ── Blood Bank Service ───────────────────────────────────────
+if lsof -i :8091 2>/dev/null | grep -q LISTEN; then
+  warn "Blood Bank service already running on :8091 — skipping."
+else
+  info "Starting Blood Bank Service (port 8091)..."
+  java -jar "$BLOOD_JAR" \
+    --spring.datasource.url=jdbc:postgresql://localhost:5445/hpm_bloodbank_db \
+    --spring.datasource.username=hpm_user \
+    --spring.datasource.password=HpmBlood2026! \
+    > "$LOG_DIR/bloodbank-service.log" 2>&1 &
+  echo $! > /tmp/hpm-bloodbank.pid
+  wait_for_port localhost 8091 "bloodbank-service"
+fi
+
 # ── Vite Frontend ───────────────────────────────────────────
 if lsof -i :3000 2>/dev/null | grep -q LISTEN; then
   warn "Frontend already running on :3000 — skipping."
@@ -202,6 +217,7 @@ echo -e "  Lab Service      → ${GREEN}http://localhost:8087${NC}"
 echo -e "  Bed Service      → ${GREEN}http://localhost:8088${NC}"
 echo -e "  Staff Service    → ${GREEN}http://localhost:8089${NC}"
 echo -e "  Inventory Svc    → ${GREEN}http://localhost:8090${NC}"
+echo -e "  Blood Bank Svc   → ${GREEN}http://localhost:8091${NC}"
 echo -e "  Frontend         → ${GREEN}http://localhost:3000${NC}"
 echo ""
 info "Logs: apt | emr | bill | notif | pharm | lab | vite → /tmp/<name>-service.log"

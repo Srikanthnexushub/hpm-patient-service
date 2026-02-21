@@ -68,6 +68,14 @@ const navSections = [
       { to: '/transactions', label: 'Transactions', icon: '📊' },
     ],
   },
+  {
+    heading: 'BLOOD BANK',
+    items: [
+      { to: '/blood-stock', label: 'Stock Dashboard', icon: '🩸' },
+      { to: '/blood-units', label: 'Blood Units', icon: '💉' },
+      { to: '/blood-requests', label: 'Blood Requests', icon: '📋' },
+    ],
+  },
 ]
 
 export default function Layout({ children }) {

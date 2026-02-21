@@ -56,6 +56,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/inv-api/, '/api'),
       },
+      '/blood-api': {
+        target: 'http://localhost:8091',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/blood-api/, '/api'),
+      },
     }
   }
 })

@@ -40,6 +40,11 @@ import LeaveDetailPage from './pages/LeaveDetailPage'
 import ItemsPage from './pages/ItemsPage'
 import ItemDetailPage from './pages/ItemDetailPage'
 import TransactionsPage from './pages/TransactionsPage'
+import BloodStockPage from './pages/BloodStockPage'
+import BloodUnitsPage from './pages/BloodUnitsPage'
+import BloodUnitDetailPage from './pages/BloodUnitDetailPage'
+import BloodRequestsPage from './pages/BloodRequestsPage'
+import BloodRequestDetailPage from './pages/BloodRequestDetailPage'
 
 function App() {
   return (
@@ -96,6 +101,12 @@ function App() {
         <Route path="/items" element={<ItemsPage />} />
         <Route path="/items/:id" element={<ItemDetailPage />} />
         <Route path="/transactions" element={<TransactionsPage />} />
+        {/* Blood Bank */}
+        <Route path="/blood-stock" element={<BloodStockPage />} />
+        <Route path="/blood-units" element={<BloodUnitsPage />} />
+        <Route path="/blood-units/:id" element={<BloodUnitDetailPage />} />
+        <Route path="/blood-requests" element={<BloodRequestsPage />} />
+        <Route path="/blood-requests/:id" element={<BloodRequestDetailPage />} />
       </Routes>
     </Layout>
   )
