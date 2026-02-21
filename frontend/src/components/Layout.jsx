@@ -54,6 +54,13 @@ const navSections = [
       { to: '/admissions', label: 'Admissions', icon: '🏥' },
     ],
   },
+  {
+    heading: 'STAFF MANAGEMENT',
+    items: [
+      { to: '/staff', label: 'Staff', icon: '👤' },
+      { to: '/leaves', label: 'Leave Requests', icon: '🏖️' },
+    ],
+  },
 ]
 
 export default function Layout({ children }) {

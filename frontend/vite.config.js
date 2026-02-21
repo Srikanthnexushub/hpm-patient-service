@@ -46,6 +46,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/bed-api/, '/api'),
       },
+      '/staff-api': {
+        target: 'http://localhost:8089',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/staff-api/, '/api'),
+      },
     }
   }
 })

@@ -33,6 +33,10 @@ import BedsPage from './pages/BedsPage'
 import AdmissionsPage from './pages/AdmissionsPage'
 import CreateAdmissionPage from './pages/CreateAdmissionPage'
 import AdmissionDetailPage from './pages/AdmissionDetailPage'
+import StaffPage from './pages/StaffPage'
+import StaffDetailPage from './pages/StaffDetailPage'
+import LeavesPage from './pages/LeavesPage'
+import LeaveDetailPage from './pages/LeaveDetailPage'
 
 function App() {
   return (
@@ -80,6 +84,11 @@ function App() {
         <Route path="/admissions" element={<AdmissionsPage />} />
         <Route path="/admissions/new" element={<CreateAdmissionPage />} />
         <Route path="/admissions/:id" element={<AdmissionDetailPage />} />
+        {/* Staff Management */}
+        <Route path="/staff" element={<StaffPage />} />
+        <Route path="/staff/:id" element={<StaffDetailPage />} />
+        <Route path="/leaves" element={<LeavesPage />} />
+        <Route path="/leaves/:id" element={<LeaveDetailPage />} />
       </Routes>
     </Layout>
   )
