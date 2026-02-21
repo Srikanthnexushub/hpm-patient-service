@@ -5,7 +5,6 @@ const navSections = [
     heading: 'PATIENTS',
     items: [
       { to: '/patients', label: 'Patients', icon: '👥' },
-      { to: '/patients/register', label: 'Register Patient', icon: '➕' },
     ],
   },
   {
@@ -13,37 +12,31 @@ const navSections = [
     items: [
       { to: '/doctors', label: 'Doctors', icon: '👨‍⚕️' },
       { to: '/appointments', label: 'Appointments', icon: '📅' },
-      { to: '/appointments/book', label: 'Book Appointment', icon: '➕' },
     ],
   },
   {
     heading: 'MEDICAL RECORDS',
     items: [
       { to: '/records', label: 'Medical Records', icon: '📋' },
-      { to: '/records/new', label: 'New Record', icon: '➕' },
     ],
   },
   {
     heading: 'BILLING',
     items: [
       { to: '/invoices', label: 'Invoices', icon: '🧾' },
-      { to: '/invoices/new', label: 'New Invoice', icon: '➕' },
     ],
   },
   {
     heading: 'NOTIFICATIONS',
     items: [
       { to: '/notifications', label: 'Notifications', icon: '🔔' },
-      { to: '/notifications/send', label: 'Send Notification', icon: '➕' },
     ],
   },
   {
     heading: 'PHARMACY',
     items: [
       { to: '/medicines', label: 'Medicines', icon: '💊' },
-      { to: '/medicines/new', label: 'Add Medicine', icon: '➕' },
       { to: '/prescriptions', label: 'Prescriptions', icon: '📝' },
-      { to: '/prescriptions/new', label: 'New Prescription', icon: '➕' },
     ],
   },
 ]
