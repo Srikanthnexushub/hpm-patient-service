@@ -21,6 +21,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/emr-api/, '/api'),
       },
+      '/bill-api': {
+        target: 'http://localhost:8084',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/bill-api/, '/api'),
+      },
     }
   }
 })

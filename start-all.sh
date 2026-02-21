@@ -12,6 +12,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APT_JAR="/Users/srikanth/IdeaProjects/HPM_Appointment/target/appointment-service-1.0.0.jar"
 EMR_JAR="/Users/srikanth/IdeaProjects/HPM_EMR/target/emr-service-1.0.0.jar"
+BILL_JAR="/Users/srikanth/IdeaProjects/HPM_Billing/target/billing-service-1.0.0.jar"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 LOG_DIR="/tmp"
 
@@ -23,7 +24,7 @@ error() { echo -e "${RED}[HPM]${NC} $*"; }
 
 # ── Check Docker DBs ────────────────────────────────────────
 info "Checking database containers..."
-for container in hpm-patient-db hpm-appointment-db hpm-emr-db; do
+for container in hpm-patient-db hpm-appointment-db hpm-emr-db hpm-billing-db; do
   if ! docker ps --filter "name=^${container}$" --filter "status=running" | grep -q "$container"; then
     warn "Container $container is not running. Starting..."
     docker start "$container" || { error "Failed to start $container"; exit 1; }
@@ -72,6 +73,20 @@ else
   wait_for_port localhost 8083 "emr-service"
 fi
 
+# ── Billing Service ─────────────────────────────────────────
+if lsof -i :8084 2>/dev/null | grep -q LISTEN; then
+  warn "Billing service already running on :8084 — skipping."
+else
+  info "Starting Billing Service (port 8084)..."
+  java -jar "$BILL_JAR" \
+    --spring.datasource.url=jdbc:postgresql://localhost:5438/hpm_billing_db \
+    --spring.datasource.username=hpm_user \
+    --spring.datasource.password=HpmBill2026! \
+    > "$LOG_DIR/bill-service.log" 2>&1 &
+  echo $! > /tmp/hpm-bill.pid
+  wait_for_port localhost 8084 "bill-service"
+fi
+
 # ── Vite Frontend ───────────────────────────────────────────
 if lsof -i :3000 2>/dev/null | grep -q LISTEN; then
   warn "Frontend already running on :3000 — skipping."
@@ -90,7 +105,8 @@ info "=============================="
 echo -e "  Patient Service  → ${GREEN}http://localhost:8081${NC}"
 echo -e "  Appointment Svc  → ${GREEN}http://localhost:8082${NC}"
 echo -e "  EMR Service      → ${GREEN}http://localhost:8083${NC}"
+echo -e "  Billing Service  → ${GREEN}http://localhost:8084${NC}"
 echo -e "  Frontend         → ${GREEN}http://localhost:3000${NC}"
 echo ""
-info "Logs: /tmp/apt-service.log | /tmp/emr-service.log | /tmp/vite.log"
+info "Logs: /tmp/apt-service.log | /tmp/emr-service.log | /tmp/bill-service.log | /tmp/vite.log"
 info "Stop everything with: ./stop-all.sh"

@@ -23,6 +23,13 @@ const navSections = [
       { to: '/records/new', label: 'New Record', icon: '➕' },
     ],
   },
+  {
+    heading: 'BILLING',
+    items: [
+      { to: '/invoices', label: 'Invoices', icon: '🧾' },
+      { to: '/invoices/new', label: 'New Invoice', icon: '➕' },
+    ],
+  },
 ]
 
 export default function Layout({ children }) {

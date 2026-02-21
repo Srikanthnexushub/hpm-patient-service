@@ -10,6 +10,9 @@ import AppointmentDetailPage from './pages/AppointmentDetailPage'
 import MedicalRecordsPage from './pages/MedicalRecordsPage'
 import CreateRecordPage from './pages/CreateRecordPage'
 import RecordDetailPage from './pages/RecordDetailPage'
+import InvoicesPage from './pages/InvoicesPage'
+import CreateInvoicePage from './pages/CreateInvoicePage'
+import InvoiceDetailPage from './pages/InvoiceDetailPage'
 
 function App() {
   return (
@@ -29,6 +32,10 @@ function App() {
         <Route path="/records" element={<MedicalRecordsPage />} />
         <Route path="/records/new" element={<CreateRecordPage />} />
         <Route path="/records/:id" element={<RecordDetailPage />} />
+        {/* Billing */}
+        <Route path="/invoices" element={<InvoicesPage />} />
+        <Route path="/invoices/new" element={<CreateInvoicePage />} />
+        <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
       </Routes>
     </Layout>
   )
