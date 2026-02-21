@@ -14,6 +14,7 @@ APT_JAR="/Users/srikanth/IdeaProjects/HPM_Appointment/target/appointment-service
 EMR_JAR="/Users/srikanth/IdeaProjects/HPM_EMR/target/emr-service-1.0.0.jar"
 BILL_JAR="/Users/srikanth/IdeaProjects/HPM_Billing/target/billing-service-1.0.0.jar"
 NOTIF_JAR="/Users/srikanth/IdeaProjects/HPM_Notification/target/notification-service-1.0.0.jar"
+PHARM_JAR="/Users/srikanth/IdeaProjects/HPM_Pharmacy/target/pharmacy-service-1.0.0.jar"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 LOG_DIR="/tmp"
 
@@ -25,7 +26,7 @@ error() { echo -e "${RED}[HPM]${NC} $*"; }
 
 # ── Check Docker DBs ────────────────────────────────────────
 info "Checking database containers..."
-for container in hpm-patient-db hpm-appointment-db hpm-emr-db hpm-billing-db hpm-notification-db; do
+for container in hpm-patient-db hpm-appointment-db hpm-emr-db hpm-billing-db hpm-notification-db hpm-pharmacy-db; do
   if ! docker ps --filter "name=^${container}$" --filter "status=running" | grep -q "$container"; then
     warn "Container $container is not running. Starting..."
     docker start "$container" || { error "Failed to start $container"; exit 1; }
@@ -102,6 +103,20 @@ else
   wait_for_port localhost 8085 "notif-service"
 fi
 
+# ── Pharmacy Service ─────────────────────────────────────────
+if lsof -i :8086 2>/dev/null | grep -q LISTEN; then
+  warn "Pharmacy service already running on :8086 — skipping."
+else
+  info "Starting Pharmacy Service (port 8086)..."
+  java -jar "$PHARM_JAR" \
+    --spring.datasource.url=jdbc:postgresql://localhost:5440/hpm_pharmacy_db \
+    --spring.datasource.username=hpm_user \
+    --spring.datasource.password=HpmPharm2026! \
+    > "$LOG_DIR/pharm-service.log" 2>&1 &
+  echo $! > /tmp/hpm-pharm.pid
+  wait_for_port localhost 8086 "pharm-service"
+fi
+
 # ── Vite Frontend ───────────────────────────────────────────
 if lsof -i :3000 2>/dev/null | grep -q LISTEN; then
   warn "Frontend already running on :3000 — skipping."
@@ -122,7 +137,8 @@ echo -e "  Appointment Svc  → ${GREEN}http://localhost:8082${NC}"
 echo -e "  EMR Service      → ${GREEN}http://localhost:8083${NC}"
 echo -e "  Billing Service  → ${GREEN}http://localhost:8084${NC}"
 echo -e "  Notif Service    → ${GREEN}http://localhost:8085${NC}"
+echo -e "  Pharmacy Service → ${GREEN}http://localhost:8086${NC}"
 echo -e "  Frontend         → ${GREEN}http://localhost:3000${NC}"
 echo ""
-info "Logs: /tmp/apt-service.log | /tmp/emr-service.log | /tmp/bill-service.log | /tmp/notif-service.log | /tmp/vite.log"
+info "Logs: /tmp/apt-service.log | /tmp/emr-service.log | /tmp/bill-service.log | /tmp/notif-service.log | /tmp/pharm-service.log | /tmp/vite.log"
 info "Stop everything with: ./stop-all.sh"

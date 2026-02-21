@@ -37,6 +37,15 @@ const navSections = [
       { to: '/notifications/send', label: 'Send Notification', icon: '➕' },
     ],
   },
+  {
+    heading: 'PHARMACY',
+    items: [
+      { to: '/medicines', label: 'Medicines', icon: '💊' },
+      { to: '/medicines/new', label: 'Add Medicine', icon: '➕' },
+      { to: '/prescriptions', label: 'Prescriptions', icon: '📝' },
+      { to: '/prescriptions/new', label: 'New Prescription', icon: '➕' },
+    ],
+  },
 ]
 
 export default function Layout({ children }) {

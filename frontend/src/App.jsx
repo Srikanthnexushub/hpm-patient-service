@@ -16,6 +16,12 @@ import InvoiceDetailPage from './pages/InvoiceDetailPage'
 import NotificationsPage from './pages/NotificationsPage'
 import SendNotificationPage from './pages/SendNotificationPage'
 import NotificationDetailPage from './pages/NotificationDetailPage'
+import MedicinesPage from './pages/MedicinesPage'
+import AddMedicinePage from './pages/AddMedicinePage'
+import MedicineDetailPage from './pages/MedicineDetailPage'
+import PrescriptionsPage from './pages/PrescriptionsPage'
+import CreatePrescriptionPage from './pages/CreatePrescriptionPage'
+import PrescriptionDetailPage from './pages/PrescriptionDetailPage'
 
 function App() {
   return (
@@ -43,6 +49,13 @@ function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/notifications/send" element={<SendNotificationPage />} />
         <Route path="/notifications/:id" element={<NotificationDetailPage />} />
+        {/* Pharmacy */}
+        <Route path="/medicines" element={<MedicinesPage />} />
+        <Route path="/medicines/new" element={<AddMedicinePage />} />
+        <Route path="/medicines/:id" element={<MedicineDetailPage />} />
+        <Route path="/prescriptions" element={<PrescriptionsPage />} />
+        <Route path="/prescriptions/new" element={<CreatePrescriptionPage />} />
+        <Route path="/prescriptions/:id" element={<PrescriptionDetailPage />} />
       </Routes>
     </Layout>
   )

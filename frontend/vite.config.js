@@ -31,6 +31,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/notif-api/, '/api'),
       },
+      '/pharm-api': {
+        target: 'http://localhost:8086',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/pharm-api/, '/api'),
+      },
     }
   }
 })
