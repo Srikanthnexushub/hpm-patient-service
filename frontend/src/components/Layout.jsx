@@ -61,6 +61,13 @@ const navSections = [
       { to: '/leaves', label: 'Leave Requests', icon: '🏖️' },
     ],
   },
+  {
+    heading: 'INVENTORY',
+    items: [
+      { to: '/items', label: 'Items', icon: '📦' },
+      { to: '/transactions', label: 'Transactions', icon: '📊' },
+    ],
+  },
 ]
 
 export default function Layout({ children }) {

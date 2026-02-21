@@ -37,6 +37,9 @@ import StaffPage from './pages/StaffPage'
 import StaffDetailPage from './pages/StaffDetailPage'
 import LeavesPage from './pages/LeavesPage'
 import LeaveDetailPage from './pages/LeaveDetailPage'
+import ItemsPage from './pages/ItemsPage'
+import ItemDetailPage from './pages/ItemDetailPage'
+import TransactionsPage from './pages/TransactionsPage'
 
 function App() {
   return (
@@ -89,6 +92,10 @@ function App() {
         <Route path="/staff/:id" element={<StaffDetailPage />} />
         <Route path="/leaves" element={<LeavesPage />} />
         <Route path="/leaves/:id" element={<LeaveDetailPage />} />
+        {/* Inventory */}
+        <Route path="/items" element={<ItemsPage />} />
+        <Route path="/items/:id" element={<ItemDetailPage />} />
+        <Route path="/transactions" element={<TransactionsPage />} />
       </Routes>
     </Layout>
   )

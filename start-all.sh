@@ -18,6 +18,7 @@ PHARM_JAR="/Users/srikanth/IdeaProjects/HPM_Pharmacy/target/pharmacy-service-1.0
 LAB_JAR="/Users/srikanth/IdeaProjects/HPM_Lab/target/lab-service-1.0.0.jar"
 BED_JAR="/Users/srikanth/IdeaProjects/HPM_Bed/target/bed-service-1.0.0.jar"
 STAFF_JAR="/Users/srikanth/IdeaProjects/HPM_Staff/target/staff-service-1.0.0.jar"
+INV_JAR="/Users/srikanth/IdeaProjects/HPM_Inventory/target/inventory-service-1.0.0.jar"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 LOG_DIR="/tmp"
 
@@ -29,7 +30,7 @@ error() { echo -e "${RED}[HPM]${NC} $*"; }
 
 # ── Check Docker DBs ────────────────────────────────────────
 info "Checking database containers..."
-for container in hpm-patient-db hpm-appointment-db hpm-emr-db hpm-billing-db hpm-notification-db hpm-pharmacy-db hpm-lab-db hpm-bed-db hpm-staff-db; do
+for container in hpm-patient-db hpm-appointment-db hpm-emr-db hpm-billing-db hpm-notification-db hpm-pharmacy-db hpm-lab-db hpm-bed-db hpm-staff-db hpm-inventory-db; do
   if ! docker ps --filter "name=^${container}$" --filter "status=running" | grep -q "$container"; then
     warn "Container $container is not running. Starting..."
     docker start "$container" || { error "Failed to start $container"; exit 1; }
@@ -162,6 +163,20 @@ else
   wait_for_port localhost 8089 "staff-service"
 fi
 
+# ── Inventory Management Service ─────────────────────────────
+if lsof -i :8090 2>/dev/null | grep -q LISTEN; then
+  warn "Inventory service already running on :8090 — skipping."
+else
+  info "Starting Inventory Management Service (port 8090)..."
+  java -jar "$INV_JAR" \
+    --spring.datasource.url=jdbc:postgresql://localhost:5444/hpm_inventory_db \
+    --spring.datasource.username=hpm_user \
+    --spring.datasource.password=HpmInv2026! \
+    > "$LOG_DIR/inventory-service.log" 2>&1 &
+  echo $! > /tmp/hpm-inventory.pid
+  wait_for_port localhost 8090 "inventory-service"
+fi
+
 # ── Vite Frontend ───────────────────────────────────────────
 if lsof -i :3000 2>/dev/null | grep -q LISTEN; then
   warn "Frontend already running on :3000 — skipping."
@@ -186,6 +201,7 @@ echo -e "  Pharmacy Service → ${GREEN}http://localhost:8086${NC}"
 echo -e "  Lab Service      → ${GREEN}http://localhost:8087${NC}"
 echo -e "  Bed Service      → ${GREEN}http://localhost:8088${NC}"
 echo -e "  Staff Service    → ${GREEN}http://localhost:8089${NC}"
+echo -e "  Inventory Svc    → ${GREEN}http://localhost:8090${NC}"
 echo -e "  Frontend         → ${GREEN}http://localhost:3000${NC}"
 echo ""
 info "Logs: apt | emr | bill | notif | pharm | lab | vite → /tmp/<name>-service.log"
