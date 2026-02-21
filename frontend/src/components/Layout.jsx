@@ -39,6 +39,13 @@ const navSections = [
       { to: '/prescriptions', label: 'Prescriptions', icon: '📝' },
     ],
   },
+  {
+    heading: 'LABORATORY',
+    items: [
+      { to: '/lab-tests', label: 'Lab Tests', icon: '🔬' },
+      { to: '/lab-orders', label: 'Lab Orders', icon: '🧪' },
+    ],
+  },
 ]
 
 export default function Layout({ children }) {

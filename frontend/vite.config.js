@@ -36,6 +36,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/pharm-api/, '/api'),
       },
+      '/lab-api': {
+        target: 'http://localhost:8087',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/lab-api/, '/api'),
+      },
     }
   }
 })
