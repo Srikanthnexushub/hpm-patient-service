@@ -13,6 +13,9 @@ import RecordDetailPage from './pages/RecordDetailPage'
 import InvoicesPage from './pages/InvoicesPage'
 import CreateInvoicePage from './pages/CreateInvoicePage'
 import InvoiceDetailPage from './pages/InvoiceDetailPage'
+import NotificationsPage from './pages/NotificationsPage'
+import SendNotificationPage from './pages/SendNotificationPage'
+import NotificationDetailPage from './pages/NotificationDetailPage'
 
 function App() {
   return (
@@ -36,6 +39,10 @@ function App() {
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/invoices/new" element={<CreateInvoicePage />} />
         <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
+        {/* Notifications */}
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/notifications/send" element={<SendNotificationPage />} />
+        <Route path="/notifications/:id" element={<NotificationDetailPage />} />
       </Routes>
     </Layout>
   )

@@ -20,13 +20,15 @@ stop_pid_file() {
 
 stop_pid_file /tmp/hpm-apt.pid  "Appointment Service"
 stop_pid_file /tmp/hpm-emr.pid  "EMR Service"
-stop_pid_file /tmp/hpm-bill.pid "Billing Service"
-stop_pid_file /tmp/hpm-vite.pid "Vite Dev Server"
+stop_pid_file /tmp/hpm-bill.pid  "Billing Service"
+stop_pid_file /tmp/hpm-notif.pid "Notification Service"
+stop_pid_file /tmp/hpm-vite.pid  "Vite Dev Server"
 
 # Fallback: kill by pattern if pid files are missing
-pkill -f "appointment-service.*jar" 2>/dev/null && info "Stopped appointment-service (fallback)" || true
-pkill -f "emr-service.*jar"         2>/dev/null && info "Stopped emr-service (fallback)"         || true
-pkill -f "billing-service.*jar"     2>/dev/null && info "Stopped billing-service (fallback)"     || true
-pkill -f "vite"                     2>/dev/null && info "Stopped vite (fallback)"                 || true
+pkill -f "appointment-service.*jar"   2>/dev/null && info "Stopped appointment-service (fallback)"   || true
+pkill -f "emr-service.*jar"           2>/dev/null && info "Stopped emr-service (fallback)"           || true
+pkill -f "billing-service.*jar"       2>/dev/null && info "Stopped billing-service (fallback)"       || true
+pkill -f "notification-service.*jar"  2>/dev/null && info "Stopped notification-service (fallback)"  || true
+pkill -f "vite"                       2>/dev/null && info "Stopped vite (fallback)"                   || true
 
 info "All HPM services stopped."

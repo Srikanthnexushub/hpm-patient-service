@@ -30,6 +30,13 @@ const navSections = [
       { to: '/invoices/new', label: 'New Invoice', icon: '➕' },
     ],
   },
+  {
+    heading: 'NOTIFICATIONS',
+    items: [
+      { to: '/notifications', label: 'Notifications', icon: '🔔' },
+      { to: '/notifications/send', label: 'Send Notification', icon: '➕' },
+    ],
+  },
 ]
 
 export default function Layout({ children }) {
